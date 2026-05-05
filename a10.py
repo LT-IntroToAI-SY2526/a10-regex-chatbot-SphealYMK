@@ -4,7 +4,7 @@ import wikipedia
 from bs4 import BeautifulSoup
 from match import match
 from typing import List, Callable, Tuple, Any, Match
-
+from dateutil import parser
 
 def get_page_html(title: str) -> str:
     for attempt in range(5):
@@ -122,7 +122,26 @@ def get_birth_date(name: str) -> str:
 
     return match.group("birth")
 
+def get_death_date(name: str) -> str:
+    """Gets birth date of the given person
 
+    Args:
+        name - name of the person
+
+    Returns:
+        birth date of the given person
+    """
+    infobox_text = clean_text(get_first_infobox_text(get_page_html(name)))
+    pattern = r"(?:Died\D*)(?P<death>\w+\s+\d{1,2},?\s+\d{4})"
+    error_text = (
+        "Page infobox has no birth information (at least none in xxxx-xx-xx format)"
+    )
+    match = get_match(infobox_text, pattern, error_text)
+    raw_date = match.group("death")
+
+    dt = parser.parse(raw_date)
+    print(infobox_text)
+    return dt.strftime("%Y-%m-%d")
 # below are a set of actions. Each takes a list argument and returns a list of answers
 # according to the action and the argument. It is important that each function returns a
 # list of the answer(s) and not just the answer itself.
@@ -139,6 +158,16 @@ def birth_date(matches: List[str]) -> List[str]:
     """
     return [get_birth_date(" ".join(matches))]
 
+def death_date(matches: List[str]) -> List[str]:
+    """Returns birth date of named person in matches
+
+    Args:
+        matches - match from pattern of person's name to find birth date of
+
+    Returns:
+        birth date of named person
+    """
+    return [get_death_date(" ".join(matches))]
 
 def polar_radius(matches: List[str]) -> List[str]:
     """Returns polar radius of planet in matches
@@ -211,4 +240,4 @@ def query_loop() -> None:
 
 
 # uncomment the next line once you've implemented everything are ready to try it out
-query_loop()
+#query_loop()

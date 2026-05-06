@@ -132,16 +132,14 @@ def get_death_date(name: str) -> str:
         birth date of the given person
     """
     infobox_text = clean_text(get_first_infobox_text(get_page_html(name)))
-    pattern = r"(?:Died\D*)(?P<death>\w+\s+\d{1,2},?\s+\d{4})"
+    pattern = r"(?:Died\D*)(?P<death>\d{4}-\d{2}-\d{2}-\d{2})"
+    print(pattern)
     error_text = (
-        "Page infobox has no birth information (at least none in xxxx-xx-xx format)"
+        "Page infobox has no death information (at least none in xxxx-xx-xx format)"
     )
-    match = get_match(infobox_text, pattern, error_text)
-    raw_date = match.group("death")
+    # match = get_match(infobox_text, pattern, error_text)
 
-    dt = parser.parse(raw_date)
-    print(infobox_text)
-    return dt.strftime("%Y-%m-%d")
+    return match.group("death")
 # below are a set of actions. Each takes a list argument and returns a list of answers
 # according to the action and the argument. It is important that each function returns a
 # list of the answer(s) and not just the answer itself.
@@ -196,6 +194,7 @@ Action = Callable[[List[str]], List[Any]]
 pa_list: List[Tuple[Pattern, Action]] = [
     ("when was % born".split(), birth_date),
     ("what is the polar radius of %".split(), polar_radius),
+    ("when did % die".split(),death_date),
     (["bye"], bye_action),
 ]
 
@@ -214,6 +213,9 @@ def search_pa_list(src: List[str]) -> List[str]:
     """
     for pat, act in pa_list:
         mat = match(pat, src)
+        print(act)
+        print(pat)
+        print(mat)
         if mat is not None:
             answer = act(mat)
             return answer if answer else ["No answers"]

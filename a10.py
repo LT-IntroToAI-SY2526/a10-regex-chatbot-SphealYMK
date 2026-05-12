@@ -129,17 +129,58 @@ def get_death_date(name: str) -> str:
         name - name of the person
 
     Returns:
-        birth date of the given person
+        birth death of the given person
     """
     infobox_text = clean_text(get_first_infobox_text(get_page_html(name)))
-    pattern = r"(?:Died\D*)(?P<death>\d{4}-\d{2}-\d{2}-\d{2})"
-    print(pattern)
+    infobox_text = re.sub(r"\(.*?\)", "", infobox_text)
+    pattern = r"Died[^A-Za-z]*([A-Za-z]+\s+\d{1,2},?\s+\d{4})"
+
     error_text = (
         "Page infobox has no death information (at least none in xxxx-xx-xx format)"
     )
-    # match = get_match(infobox_text, pattern, error_text)
+    match = re.search(pattern, infobox_text)
+    if not match:
+        return "Alive"
+    raw_date = match.group(1)
 
-    return match.group("death")
+    dt = parser.parse(raw_date)
+    return dt.strftime("%Y-%m-%d")
+
+def get_age(name: str) -> str:
+    infobox_text = clean_text(get_first_infobox_text(get_page_html(name)))
+
+    # 1. Check for death age: (aged XX)
+    death_age_match = re.search(r"\(aged\s+(\d+)\)", infobox_text)
+    if death_age_match:
+        age = death_age_match.group(1)
+        return f"Dead at age {age}"
+
+    # 2. Check for living age: (age XX)
+    living_age_match = re.search(r"\(age\s+(\d+)\)", infobox_text)
+    if living_age_match:
+        age1 = living_age_match.group(1)
+        return f"{age1} years old"
+    # 3. No age found
+    return "Unknown"
+
+def get_birth_place(name: str) -> str:
+    infobox_text = clean_text(get_first_infobox_text(get_page_html(name)))
+
+    pattern = r"Born.*?\d{4}[^\w]*([A-Za-z .'-]+,[A-Za-z .'-]+)"
+    match = re.search(pattern, infobox_text)
+
+    if match:
+        return match.group(1).strip()
+
+    pattern2 = r"Born\(age \d+\)([A-Za-z .'-]+,[A-Za-z .'-]+)"
+    match2 = re.search(pattern2, infobox_text)
+    print(match2)
+    if match2:
+        print("sus")
+        return match2.group(1).strip()
+    
+
+    return "Unknown"
 # below are a set of actions. Each takes a list argument and returns a list of answers
 # according to the action and the argument. It is important that each function returns a
 # list of the answer(s) and not just the answer itself.
@@ -177,6 +218,13 @@ def polar_radius(matches: List[str]) -> List[str]:
         polar radius of planet
     """
     return [get_polar_radius(matches[0])]
+def age(matches: List[str]) -> List[str]:
+
+    return [get_age(" ".join(matches))]
+
+def birth_place(matches):
+    
+    return [get_birth_place(" ".join(matches))]
 
 
 # dummy argument is ignored and doesn't matter
@@ -195,6 +243,8 @@ pa_list: List[Tuple[Pattern, Action]] = [
     ("when was % born".split(), birth_date),
     ("what is the polar radius of %".split(), polar_radius),
     ("when did % die".split(),death_date),
+    ("how old is %".split(),age),
+    ("where was % born".split(),birth_place),
     (["bye"], bye_action),
 ]
 
